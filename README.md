@@ -1,41 +1,67 @@
 # ParallelIncludes
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/parallel_includes`. To experiment with that code, run `bin/console` for an interactive prompt.
+:warning: :warning: **DO NOT USE THIS!!** :warning: :warning:
 
-TODO: Delete this and the text above, and describe your gem
+[Ecto](https://github.com/elixir-ecto/ecto), the database wrapper for Elixir, preloads associated records in parallel. Active Record does not.
 
-## Installation
+So I thought to myself, hmmm... wouldn't it be cool if Active Record loaded includes in parallel? Why yes, that would be cool.
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'parallel_includes'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install parallel_includes
+As it turns out, it's not that cool. Based on my benchmarks, it's actually slower than loading them synchronously. So, I'm going to chalk this up to being a failed experiment.
 
 ## Usage
 
-TODO: Write usage instructions here
+**Don't. Just don't.**
 
-## Development
+But, if you absolutely must:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```ruby
+gem 'parallel_includes', github: 'rzane/parallel_includes'
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+```ruby
+SomeModel.includes(:some_assoc, :some_other_assoc, :yet_another_assoc).parallel
+```
+
+## Benchmarks
+
+Here are the results on a small dataset:
+
+```
+Warming up --------------------------------------
+        non-parallel    11.000  i/100ms
+            parallel    10.000  i/100ms
+Calculating -------------------------------------
+        non-parallel    119.339  (± 6.7%) i/s -    605.000  in   5.099080s
+            parallel     99.357  (±11.1%) i/s -    490.000  in   5.007942s
+
+Comparison:
+        non-parallel:      119.3 i/s
+            parallel:       99.4 i/s - 1.20x  slower
+```
+
+Here are the results on a larger dataset:
+
+```
+Warming up --------------------------------------
+        non-parallel   329.000  i/100ms
+            parallel    82.000  i/100ms
+Calculating -------------------------------------
+        non-parallel      3.083k (±13.4%) i/s -     15.134k in   5.080703s
+            parallel    883.428  (± 2.6%) i/s -      4.428k in   5.015859s
+
+Comparison:
+        non-parallel:     3083.2 i/s
+            parallel:      883.4 i/s - 3.49x  slower
+```
+
+As you can see, these are pretty ugly results.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Ray Zane/parallel_includes.
+Bug reports and pull requests are welcome on GitHub at https://github.com/rzane/parallel_includes.
 
 
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

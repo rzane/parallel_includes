@@ -9,7 +9,7 @@ module ParallelIncludes
       @preload_threads = []
     end
 
-    def preload(_, associations, *)
+    def preload(*)
       self.preload_threads << Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
           super
