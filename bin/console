@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "parallel_includes"
+require_relative '../test/models'
+require "pry"
+
+Pry.start
