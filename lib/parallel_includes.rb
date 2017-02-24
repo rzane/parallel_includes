@@ -2,23 +2,23 @@ require 'active_record'
 require 'parallel_includes/version'
 
 module ParallelIncludes
-  class Batch < Array
-    def flat_map
-      threads = map do |item|
-        Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection do
-            yield item
-          end
+  class Preloader < ActiveRecord::Associations::Preloader
+    attr_reader :preload_threads
+
+    def initialize
+      @preload_threads = []
+    end
+
+    def preload(_, associations, *)
+      self.preload_threads << Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          super
         end
       end
-
-      threads.flat_map(&:value)
     end
-  end
 
-  class Preloader < ActiveRecord::Associations::Preloader
-    def preload(records, associations, preload_scope = nil)
-      super(records, Batch.new(associations), preload_scope)
+    def join
+      preload_threads.each(&:join)
     end
   end
 
@@ -28,14 +28,38 @@ module ParallelIncludes
     end
 
     def parallel!
-      @parallel_preloader = Preloader.new
+      self.parallel_preload = true
       self
     end
 
     private
 
+    # @override
+    def exec_queries(&block)
+      if parallel_preload?
+        with_parallel_preloading { super }
+      else
+        super
+      end
+    end
+
+    # @override
     def build_preloader
-      @parallel_preloader || super
+      parallel_preloader || super
+    end
+
+    attr_writer   :parallel_preload
+    attr_accessor :parallel_preloader
+
+    def parallel_preload?
+      @parallel_preload || false
+    end
+
+    def with_parallel_preloading
+      self.parallel_preloader = Preloader.new
+      yield.tap { parallel_preloader.join }
+    ensure
+      self.parallel_preloader = nil
     end
   end
 end
